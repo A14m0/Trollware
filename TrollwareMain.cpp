@@ -16,6 +16,7 @@
 #include <endpointvolume.h>
 #include <mmdeviceapi.h>
 #include <string>
+#include <iostream>
 #define GetCurrentDir _getcwd
 #ifndef UNICODE // Req definition for Windows.h
 #define UNICODE
@@ -91,7 +92,22 @@ bool ChangeVolume(double nVolume, bool bScalar)
 
 
 DWORD WINAPI PlaySong(LPVOID lpParameter) {
-	mciSendString("open \"C:\\Users\\Chittoh\\Music\\rickroll.mp3\" type mpegvideo alias mp3", NULL, 0, NULL);
+
+	char cCurrentPath[FILENAME_MAX];
+
+	if (!GetCurrentDir(cCurrentPath, sizeof(cCurrentPath)))
+	{
+		return 1;
+	}
+
+	cCurrentPath[sizeof(cCurrentPath) - 1] = '\0'; /* not really required */
+
+	char outfilename[FILENAME_MAX] = "\\audio.mp3";
+	std::string main("open \"");//, "\" type mpegvideo alias mp3");
+	errno_t success = strcat_s(cCurrentPath, sizeof(cCurrentPath), outfilename);
+	main.append(cCurrentPath);
+	main.append("\" type mpegvideo alias mp3");
+	mciSendString(main.c_str(), NULL, 0, NULL);
 	mciSendString("play mp3 wait", NULL, 0, NULL);
 	return 0;
 }
@@ -195,7 +211,8 @@ size_t DownloadFile(std::string url, char* outfilename) {
 	CURLcode res;
 	curl = curl_easy_init();
 	if (curl) {
-		fp = fopen(outfilename, "wb");
+		errno_t suc = fopen_s(&fp, outfilename, "wb");
+		//fp = fopen_s(outfilename, "wb");
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
@@ -207,9 +224,12 @@ size_t DownloadFile(std::string url, char* outfilename) {
 	return 1;
 }
 
-int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+//int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+int main()
 {
 	HANDLE threadHandler = CreateThread(0, 0, PlaySong, NULL, 0, 0); // starts rickroll thread to get out of way for other routines to execute
+	Sleep(10000);
+	return 0;
 	int count = 0;
 	std::string url = "https://i.ytimg.com/vi/ibr6egCSqiE/maxresdefault.jpg";
 
@@ -225,11 +245,10 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 	char outfilename[FILENAME_MAX] = "file.jpg";
 	char file[FILENAME_MAX] = "\\file.jpg";
 
-	std::string final = strcat(cCurrentPath, file);
+	errno_t succ = strcat_s(cCurrentPath, MAX_PATH, file);
 	DownloadFile(url, outfilename);
-	std::wstring ws(final.begin(), final.end());
-	LPCWSTR fin = ws.c_str();
-	SetWallpaper(fin);
+	//LPCWSTR fin = cC;
+	SetWallpaper((LPCWSTR) cCurrentPath);
 
 	while (count < 1000) { // # of reps
 		int v1 = 1;
@@ -266,4 +285,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLin
 			(https://docs.microsoft.com/en-us/windows/desktop/CoreAudio/wasapi)
 			(https://stackoverflow.com/questions/14771775/how-to-change-master-volume-programmatically)
 
+
+		3. Project type change note
+		https://stackoverflow.com/questions/6626397/error-lnk2019-unresolved-external-symbol-winmain16-referenced-in-function#8532797
 */
