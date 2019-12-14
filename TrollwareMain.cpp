@@ -28,7 +28,7 @@
 
 struct AudioRet {
 	bool isPlaying = true;
-	LPSTR timeToEnd;
+	char * timeToEnd;
 };
 
 void MoveCursor() {
@@ -84,7 +84,8 @@ DWORD WINAPI PlaySong(LPVOID lpParameter) {
 	
 	char buff[100];
 	mciSendString("status mp3 length", buff, sizeof(buff), NULL);
-	RetStruct->timeToEnd = buff;
+	strcpy_s(RetStruct->timeToEnd, 32, buff);
+	//RetStruct->timeToEnd = buff;
 	
 	mciSendString("play mp3 wait", NULL, 0, NULL);
 	RetStruct->isPlaying = false;
@@ -199,23 +200,24 @@ DWORD WINAPI SongPlayin(LPVOID lpparameter) {
 	
 	AudioRet passoff;
 	passoff.isPlaying = true;
-	passoff.timeToEnd = "0";
+	passoff.timeToEnd = (char *)malloc(32);
 	//while (true) {
-	for(int i = 0; i < 10; i++){
-		HANDLE threadHandler = CreateThread(0, 0, PlaySong, reinterpret_cast<void*>(&passoff), 0, 0); // starts rickroll thread to get out of way for other routines to execute
+	HANDLE threadHandler = CreateThread(0, 0, PlaySong, reinterpret_cast<void*>(&passoff), 0, 0); // starts rickroll thread to get out of way for other routines to execute
+
 		
-		Sleep(1000); // gives thread time to complete initial thing
-		printf("Length of track: %s\n", passoff.timeToEnd);
-		printf("SongPlaying value: %d\n", passoff.isPlaying);
+	Sleep(1000); // gives thread time to complete initial thing
+	printf("Length of track: %s\n", passoff.timeToEnd);
+	printf("SongPlaying value: %d\n", passoff.isPlaying);
 
-		std::string number(passoff.timeToEnd);
-		int time = std::stoi(number);
-
-		printf("Time in integer: %d\n", time);
-		Sleep(time);
-		printf("TimerUP\n");
-		CloseHandle(threadHandler);
+	for (int i = 0; i*1000 < std::stoi(passoff.timeToEnd); i++) {
+		Sleep(1000);
+		MaxVol();
+		std::cout << i << std::endl;
 	}
+	CloseHandle(threadHandler);
+
+	*done = true;
+	free(passoff.timeToEnd);
 	printf("Song complete. Exiting");
 	return 0;
 
@@ -233,7 +235,7 @@ int main()
 {
 	MaxVol();
 	
-	HANDLE mouseThread = CreateThread(0, 0, troll_the_mouse, NULL, 0, 0);
+	//HANDLE mouseThread = CreateThread(0, 0, troll_the_mouse, NULL, 0, 0);
 
 	bool done = false;
 	HANDLE audioThread = CreateThread(0, 0, SongPlayin, reinterpret_cast<void*>(&done), 0, 0); // Plays song (rickroll as of right now)
@@ -241,7 +243,7 @@ int main()
 		Sleep(1000);
 	}
 	CloseHandle(audioThread);
-	CloseHandle(mouseThread);
+	//CloseHandle(mouseThread);
 	return 0; // debug output
 
 
