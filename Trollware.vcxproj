@@ -107,10 +107,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="audio.cpp" />
+    <ClCompile Include="cursor.cpp" />
+    <ClCompile Include="network.cpp" />
     <ClCompile Include="TrollwareMain.cpp" />
+    <ClCompile Include="wallpaper.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\killwifi2\killwifi2\pch.h" />
+    <ClInclude Include="audio.h" />
+    <ClInclude Include="definitions.h" />
+    <ClInclude Include="cursor.h" />
+    <ClInclude Include="network.h" />
+    <ClInclude Include="structures.h" />
+    <ClInclude Include="wallpaper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
