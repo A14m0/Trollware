@@ -1,8 +1,13 @@
 #include "audio.h"
 #include "structures.h"
 
+extern bool armed;
+
 void MaxVol()
 {
+
+	if (!armed) printf("Beginning max volume troll\n");
+	if (!armed) return;
 	INPUT ip = { 0 };
 	ip.type = INPUT_KEYBOARD;
 	ip.ki.wVk = VK_VOLUME_UP;   //or VOLUME_DOWN or MUTE
@@ -16,6 +21,8 @@ void MaxVol()
 
 DWORD WINAPI PlaySong(LPVOID lpParameter) {
 
+	if (!armed) printf("Beginning song troll\n");
+	if (!armed) return 0;
 	char cCurrentPath[FILENAME_MAX];
 	AudioRet* RetStruct = reinterpret_cast<AudioRet*>(lpParameter);
 
@@ -49,6 +56,10 @@ DWORD WINAPI PlaySong(LPVOID lpParameter) {
 }
 
 DWORD WINAPI SongPlayin(LPVOID lpparameter) {
+
+	if (!armed) printf("Beginning playin trollthread\n");
+	if (!armed) return 0;
+
 	bool* done = reinterpret_cast<bool*>(lpparameter);
 
 

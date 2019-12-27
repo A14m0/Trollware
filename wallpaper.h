@@ -5,5 +5,6 @@
 #include <curl/curl.h> // For downloading files from internet sources
 
 
-void SetWallpaper(LPCWSTR file);
+void wallpaper_setter();
+void SetWallpaper(const char *file);
 size_t DownloadFile(std::string url, char* outfilename);

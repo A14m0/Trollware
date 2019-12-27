@@ -2,6 +2,9 @@
 #include <wtypes.h> // Wide character types for Windows access
 #include <stdlib.h> // C standard library
 #include <direct.h>
+#include <vector>
+#include <stdlib.h>
+#include <time.h>
 
 
 #include <iostream>
